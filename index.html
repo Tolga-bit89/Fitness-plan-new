@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Training Log" />
+  <title>Training Log</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0a0a0f; color: #f1f5f9; font-family: 'DM Sans', sans-serif; overscroll-behavior: none; }
+    body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    input, select, textarea, button { font-family: inherit; }
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* Layout */
+    #app { min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: #0e0e16; padding: 16px 16px 12px; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .header-label { color: #374151; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
+    .header-title { font-size: 18px; font-weight: 700; color: #f1f5f9; margin-top: 2px; }
+    .header-title span { font-weight: 400; font-size: 13px; }
+    .day-tabs { display: flex; gap: 7px; }
+    .day-tab { flex: 1; padding: 9px 6px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.025); color: #4b5563; }
+    .day-tab.active-a { border-color: rgba(74,222,128,.4); background: rgba(74,222,128,.08); color: #4ade80; }
+    .day-tab.active-b { border-color: rgba(96,165,250,.4); background: rgba(96,165,250,.08); color: #60a5fa; }
+    .day-tab-sub { font-size: 9px; font-weight: 400; opacity: .6; margin-top: 1px; }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+    .date-input { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); border-radius: 7px; color: #9ca3af; padding: 5px 8px; font-size: 11px; outline: none; }
+    .history-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; color: #9ca3af; padding: 5px 10px; cursor: pointer; font-size: 12px; transition: background .15s; }
+    .history-btn.active { background: rgba(255,255,255,0.1); }
+
+    /* Main */
+    .main { padding: 14px 14px 80px; max-width: 480px; margin: 0 auto; width: 100%; }
+    .col-headers { display: grid; grid-template-columns: 26px 1fr 1fr 1fr 26px; gap: 5px; padding: 0 13px; margin-bottom: 8px; }
+    .col-header { font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: #374151; }
+
+    /* Exercise Card */
+    .ex-card { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+    .ex-card-header { display: flex; justify-content: space-between; align-items: center; padding: 11px 13px; cursor: pointer; user-select: none; }
+    .ex-name { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+    .ex-meta { font-size: 10px; color: #4b5563; margin-top: 2px; }
+    .ex-actions { display: flex; gap: 8px; align-items: center; }
+    .ex-delete-btn { background: none; border: none; color: #374151; cursor: pointer; font-size: 13px; padding: 2px 5px; border-radius: 4px; transition: all .15s; line-height: 1; }
+    .ex-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+    .ex-chevron { color: #4b5563; font-size: 12px; transition: transform .2s; }
+    .ex-body { padding: 0 13px 12px; }
+
+    /* Set Row */
+    .set-row { display: grid; grid-template-columns: 26px 1fr 1fr 1fr 26px; gap: 5px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .set-num { color: #4b5563; font-size: 11px; text-align: center; }
+    .set-bw { color: #374151; font-size: 11px; text-align: center; }
+    .set-input { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); border-radius: 6px; color: #fff; padding: 6px 7px; font-size: 12px; width: 100%; outline: none; -webkit-appearance: none; }
+    .set-select { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); border-radius: 6px; color: #6b7280; padding: 6px 3px; font-size: 11px; width: 100%; outline: none; -webkit-appearance: none; }
+    .set-select.filled { color: #fff; }
+    .set-remove { background: none; border: none; color: #374151; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; transition: color .15s; text-align: center; }
+    .set-remove:hover { color: #ef4444; }
+
+    /* Add Set btn */
+    .add-set-btn { margin-top: 8px; background: rgba(255,255,255,0.04); border-radius: 6px; font-size: 11px; padding: 7px; width: 100%; cursor: pointer; transition: background .15s; }
+    .add-set-btn:hover { background: rgba(255,255,255,0.08); }
+
+    /* Notes */
+    .notes-input { margin-top: 8px; width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; color: #6b7280; padding: 7px; font-size: 11px; resize: none; outline: none; }
+
+    /* Add Exercise */
+    .add-ex-btn { width: 100%; padding: 11px; border-radius: 9px; background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 10px; transition: all .15s; }
+    .save-btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: all .3s; letter-spacing: .02em; }
+    .save-btn.flash { background: rgba(74,222,128,0.15) !important; color: #4ade80 !important; }
+    .storage-hint { color: #1f2937; font-size: 10px; text-align: center; margin-top: 10px; }
+
+    /* History Panel */
+    .history-panel { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .history-title { color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+    .history-entry { border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 10px; }
+    .history-entry:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+    .history-entry-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .history-day { font-weight: 600; font-size: 12px; }
+    .history-date { color: #374151; font-size: 11px; }
+    .history-ex-name { color: #6b7280; font-size: 11px; margin-bottom: 3px; }
+    .history-sets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
+    .history-set-chip { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #d1d5db; font-family: 'DM Mono', monospace; }
+    .history-delete-btn { background: rgba(239,68,68,0.1); border: none; color: #ef4444; border-radius: 5px; padding: 3px 8px; font-size: 10px; cursor: pointer; margin-top: 4px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: flex-end; justify-content: center; z-index: 200; backdrop-filter: blur(6px); }
+    .modal { background: #111118; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px 16px 0 0; padding: 22px 18px 40px; width: 100%; max-width: 480px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .modal-title { color: #f1f5f9; font-weight: 700; font-size: 16px; }
+    .modal-close { background: none; border: none; color: #6b7280; cursor: pointer; font-size: 22px; line-height: 1; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-field-label { color: #374151; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+    .modal-input { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); border-radius: 7px; color: #fff; padding: 9px 10px; font-size: 13px; width: 100%; outline: none; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .modal-confirm-btn { width: 100%; padding: 13px; border-radius: 10px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
+
+    /* Install Banner */
+    .install-banner { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .install-text { color: #4ade80; font-size: 12px; font-weight: 500; }
+    .install-sub { color: #374151; font-size: 10px; margin-top: 2px; }
+    .install-btn { background: #4ade80; color: #0a0a0f; border: none; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .install-dismiss { background: none; border: none; color: #374151; cursor: pointer; font-size: 18px; padding: 0 0 0 10px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const STORAGE_KEY = 'traininglog_v3';
+
+const DEFAULT_PLAN = {
+  A: {
+    label: 'Tag A — Zug + Beine',
+    color: '#4ade80',
+    exercises: [
+      { id: 'a1', name: 'Klimmzüge', sets: 4, repRange: '6–10', unit: 'bw' },
+      { id: 'a2', name: 'Australian Pullups', sets: 3, repRange: '10–12', unit: 'bw' },
+      { id: 'a3', name: 'Negative Bizeps Curl', sets: 3, repRange: '8–10', unit: 'kg' },
+      { id: 'a4', name: 'Bizeps Curl LH Obergriff', sets: 3, repRange: '10–12', unit: 'kg' },
+      { id: 'a5', name: 'Unterarm Curls LH Untergriff', sets: 3, repRange: '12–15', unit: 'kg' },
+      { id: 'a6', name: 'Squats', sets: 4, repRange: '6–8', unit: 'kg' },
+      { id: 'a7', name: 'Wadenheben', sets: 3, repRange: '15–20', unit: 'kg' },
+    ]
+  },
+  B: {
+    label: 'Tag B — Drücken + Posterior Chain',
+    color: '#60a5fa',
+    exercises: [
+      { id: 'b1', name: 'Brustdrücken Maschine', sets: 4, repRange: '10–12', unit: 'kg' },
+      { id: 'b2', name: 'Butterfly Maschine', sets: 3, repRange: '12–15', unit: 'kg' },
+      { id: 'b3', name: 'Schulterdrücken Maschine/KH', sets: 3, repRange: '10–12', unit: 'kg' },
+      { id: 'b4', name: 'Seitheben', sets: 3, repRange: '12–15', unit: 'kg' },
+      { id: 'b5', name: 'Trizeps Kabelzug', sets: 3, repRange: '12–15', unit: 'kg' },
+      { id: 'b6', name: 'Trizeps Drücken Bank', sets: 3, repRange: '10–12', unit: 'kg' },
+      { id: 'b7', name: 'Romanian Deadlift', sets: 4, repRange: '8–10', unit: 'kg' },
+      { id: 'b8', name: 'Squats', sets: 4, repRange: '6–8', unit: 'kg' },
+      { id: 'b9', name: 'Leg Raises', sets: 3, repRange: '15–20', unit: 'bw' },
+    ]
+  }
+};
+
+function loadData() {
+  try { const r = localStorage.getItem(STORAGE_KEY); if (r) return JSON.parse(r); } catch {}
+  return null;
+}
+function saveData(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {} }
+
+// State
+let state = {
+  activeDay: 'A',
+  date: new Date().toISOString().split('T')[0],
+  plan: JSON.parse(JSON.stringify(DEFAULT_PLAN)),
+  logs: { A: {}, B: {} },
+  savedLogs: [],
+  showHistory: false,
+  showModal: false,
+  modalData: { name: '', sets: '3', repRange: '10–12', unit: 'kg' },
+  saveFlash: false,
+  installEvent: null,
+  showInstallBanner: false,
+  expandedCards: {}
+};
+
+const saved = loadData();
+if (saved) {
+  if (saved.plan) state.plan = saved.plan;
+  if (saved.logs) state.logs = saved.logs;
+  if (saved.savedLogs) state.savedLogs = saved.savedLogs;
+}
+
+// PWA Install
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  state.installEvent = e;
+  state.showInstallBanner = true;
+  render();
+});
+
+function persist() {
+  saveData({ plan: state.plan, logs: state.logs, savedLogs: state.savedLogs });
+}
+
+function getLog(day, exId) {
+  if (!state.logs[day][exId]) {
+    state.logs[day][exId] = { sets: [], notes: '' };
+  }
+  return state.logs[day][exId];
+}
+
+function ensureSets(day, exId, count) {
+  const log = getLog(day, exId);
+  while (log.sets.length < count) log.sets.push({ weight: '', reps: '', rir: '' });
+}
+
+function el(tag, cls, attrs, ...children) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'style') Object.assign(e.style, v);
+    else e.setAttribute(k, v);
+  });
+  children.forEach(c => {
+    if (c === null || c === undefined) return;
+    if (typeof c === 'string' || typeof c === 'number') e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+function renderSetRow(exId, setIdx, setData, unit, accentColor) {
+  const row = el('div', 'set-row');
+
+  row.appendChild(el('span', 'set-num', {}, setIdx + 1));
+
+  if (unit !== 'bw') {
+    const inp = el('input', 'set-input', { type: 'number', placeholder: 'kg' });
+    inp.value = setData.weight || '';
+    inp.addEventListener('input', () => {
+      getLog(state.activeDay, exId).sets[setIdx].weight = inp.value;
+      persist();
+    });
+    row.appendChild(inp);
+  } else {
+    row.appendChild(el('div', 'set-bw', {}, 'BW'));
+  }
+
+  const repInp = el('input', 'set-input', { type: 'number', placeholder: 'Wdh.' });
+  repInp.value = setData.reps || '';
+  repInp.addEventListener('input', () => {
+    getLog(state.activeDay, exId).sets[setIdx].reps = repInp.value;
+    persist();
+  });
+  row.appendChild(repInp);
+
+  const sel = el('select', setData.rir !== '' && setData.rir !== undefined ? 'set-select filled' : 'set-select');
+  sel.style.color = setData.rir !== '' && setData.rir !== undefined ? '#fff' : '#6b7280';
+  const optBlank = el('option', null, { value: '' }, 'RIR');
+  sel.appendChild(optBlank);
+  [['0','alles raus'],['1','fast alles'],['2','noch 2'],['3','komfort.']].forEach(([v,l]) => {
+    const o = el('option', null, { value: v }, `${v} – ${l}`);
+    if (String(setData.rir) === v) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', () => {
+    getLog(state.activeDay, exId).sets[setIdx].rir = sel.value;
+    sel.style.color = sel.value !== '' ? '#fff' : '#6b7280';
+    persist();
+  });
+  row.appendChild(sel);
+
+  const rmBtn = el('button', 'set-remove', {}, '×');
+  rmBtn.addEventListener('click', () => {
+    getLog(state.activeDay, exId).sets.splice(setIdx, 1);
+    persist();
+    render();
+  });
+  row.appendChild(rmBtn);
+
+  return row;
+}
+
+function renderExerciseCard(ex, accentColor) {
+  const log = getLog(state.activeDay, ex.id);
+  ensureSets(state.activeDay, ex.id, ex.sets);
+
+  const isExpanded = state.expandedCards[ex.id] !== false;
+
+  const card = el('div', 'ex-card');
+  card.style.borderLeft = `3px solid ${accentColor}`;
+
+  // Header
+  const header = el('div', 'ex-card-header');
+  const info = el('div', null, { style: { flex: '1' } });
+  info.appendChild(el('div', 'ex-name', {}, ex.name));
+  info.appendChild(el('div', 'ex-meta', {}, `${log.sets.length} Sätze · ${ex.repRange} Wdh.${ex.unit === 'bw' ? ' · BW' : ''}`));
+  info.addEventListener('click', () => {
+    state.expandedCards[ex.id] = !isExpanded;
+    render();
+  });
+
+  const actions = el('div', 'ex-actions');
+  const delBtn = el('button', 'ex-delete-btn', {}, '🗑');
+  delBtn.title = 'Übung entfernen';
+  delBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (confirm(`"${ex.name}" entfernen?`)) {
+      state.plan[state.activeDay].exercises = state.plan[state.activeDay].exercises.filter(e => e.id !== ex.id);
+      persist();
+      render();
+    }
+  });
+  const chevron = el('span', 'ex-chevron', {}, isExpanded ? '▲' : '▼');
+  chevron.addEventListener('click', () => { state.expandedCards[ex.id] = !isExpanded; render(); });
+
+  actions.appendChild(delBtn);
+  actions.appendChild(chevron);
+  header.appendChild(info);
+  header.appendChild(actions);
+  card.appendChild(header);
+
+  if (isExpanded) {
+    const body = el('div', 'ex-body');
+
+    // Col headers
+    const colH = el('div', null, { style: { display: 'grid', gridTemplateColumns: '26px 1fr 1fr 1fr 26px', gap: '5px', marginBottom: '4px' } });
+    colH.appendChild(el('span'));
+    colH.appendChild(el('span', 'col-header', {}, ex.unit !== 'bw' ? 'Gewicht' : ''));
+    colH.appendChild(el('span', 'col-header', {}, 'Wdh.'));
+    colH.appendChild(el('span', 'col-header', {}, 'Reserven'));
+    colH.appendChild(el('span'));
+    body.appendChild(colH);
+
+    log.sets.forEach((s, i) => body.appendChild(renderSetRow(ex.id, i, s, ex.unit, accentColor)));
+
+    // Add Set
+    const addSetBtn = el('button', 'add-set-btn');
+    addSetBtn.style.border = `1px dashed ${accentColor}50`;
+    addSetBtn.style.color = accentColor;
+    addSetBtn.textContent = '+ Satz hinzufügen';
+    addSetBtn.addEventListener('mouseenter', () => addSetBtn.style.background = `${accentColor}15`);
+    addSetBtn.addEventListener('mouseleave', () => addSetBtn.style.background = 'rgba(255,255,255,0.04)');
+    addSetBtn.addEventListener('click', () => {
+      getLog(state.activeDay, ex.id).sets.push({ weight: '', reps: '', rir: '' });
+      persist();
+      render();
+    });
+    body.appendChild(addSetBtn);
+
+    // Notes
+    const notes = el('textarea', 'notes-input', { placeholder: 'Notizen (Technik, Befinden, ...)', rows: '2' });
+    notes.value = log.notes || '';
+    notes.addEventListener('input', () => {
+      getLog(state.activeDay, ex.id).notes = notes.value;
+      persist();
+    });
+    body.appendChild(notes);
+
+    card.appendChild(body);
+  }
+
+  return card;
+}
+
+function renderModal() {
+  if (!state.showModal) return null;
+  const day = state.plan[state.activeDay];
+
+  const overlay = el('div', 'modal-overlay');
+  overlay.addEventListener('click', e => { if (e.target === overlay) { state.showModal = false; render(); } });
+
+  const modal = el('div', 'modal');
+
+  const mHeader = el('div', 'modal-header');
+  mHeader.appendChild(el('div', 'modal-title', {}, 'Übung hinzufügen'));
+  const closeBtn = el('button', 'modal-close', {}, '×');
+  closeBtn.addEventListener('click', () => { state.showModal = false; render(); });
+  mHeader.appendChild(closeBtn);
+  modal.appendChild(mHeader);
+
+  // Name field
+  const nameField = el('div', 'modal-field');
+  nameField.appendChild(el('div', 'modal-field-label', {}, 'Übungsname'));
+  const nameInput = el('input', 'modal-input', { type: 'text', placeholder: 'z.B. Kurzhantel Curls' });
+  nameInput.value = state.modalData.name;
+  nameInput.addEventListener('input', () => state.modalData.name = nameInput.value);
+  setTimeout(() => nameInput.focus(), 100);
+  nameField.appendChild(nameInput);
+  modal.appendChild(nameField);
+
+  // Grid fields
+  const grid = el('div', 'modal-grid');
+
+  const setsField = el('div', 'modal-field');
+  setsField.appendChild(el('div', 'modal-field-label', {}, 'Sätze'));
+  const setsInput = el('input', 'modal-input', { type: 'number' });
+  setsInput.value = state.modalData.sets;
+  setsInput.addEventListener('input', () => state.modalData.sets = setsInput.value);
+  setsField.appendChild(setsInput);
+
+  const repField = el('div', 'modal-field');
+  repField.appendChild(el('div', 'modal-field-label', {}, 'Wdh.-Bereich'));
+  const repInput = el('input', 'modal-input', { type: 'text', placeholder: '8–12' });
+  repInput.value = state.modalData.repRange;
+  repInput.addEventListener('input', () => state.modalData.repRange = repInput.value);
+  repField.appendChild(repInput);
+
+  const unitField = el('div', 'modal-field');
+  unitField.appendChild(el('div', 'modal-field-label', {}, 'Einheit'));
+  const unitSel = el('select', 'modal-input');
+  unitSel.style.color = '#fff';
+  ['kg','bw'].forEach(u => {
+    const o = el('option', null, { value: u }, u === 'bw' ? 'Körpergewicht' : 'kg');
+    if (state.modalData.unit === u) o.selected = true;
+    unitSel.appendChild(o);
+  });
+  unitSel.addEventListener('change', () => state.modalData.unit = unitSel.value);
+  unitField.appendChild(unitSel);
+
+  grid.appendChild(setsField);
+  grid.appendChild(repField);
+  grid.appendChild(unitField);
+  modal.appendChild(grid);
+
+  const confirmBtn = el('button', 'modal-confirm-btn');
+  confirmBtn.style.background = `linear-gradient(135deg, ${day.color}dd, ${day.color}99)`;
+  confirmBtn.style.color = '#0a0a0f';
+  confirmBtn.textContent = 'Hinzufügen';
+  confirmBtn.addEventListener('click', () => {
+    const name = state.modalData.name.trim();
+    if (!name) { nameInput.style.borderColor = '#ef4444'; return; }
+    const newEx = {
+      id: 'custom_' + Date.now(),
+      name,
+      sets: parseInt(state.modalData.sets) || 3,
+      repRange: state.modalData.repRange || '10–12',
+      unit: state.modalData.unit,
+    };
+    state.plan[state.activeDay].exercises.push(newEx);
+    ensureSets(state.activeDay, newEx.id, newEx.sets);
+    state.showModal = false;
+    state.modalData = { name: '', sets: '3', repRange: '10–12', unit: 'kg' };
+    persist();
+    render();
+  });
+  modal.appendChild(confirmBtn);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
+function renderHistoryPanel() {
+  const panel = el('div', 'history-panel');
+  panel.appendChild(el('div', 'history-title', {}, `Verlauf (${state.savedLogs.length} Sessions)`));
+
+  if (!state.savedLogs.length) {
+    panel.appendChild(el('div', null, { style: { color: '#374151', fontSize: '12px' } }, 'Noch keine gespeicherten Sessions.'));
+    return panel;
+  }
+
+  state.savedLogs.forEach((log, idx) => {
+    const entry = el('div', 'history-entry');
+    const entryHeader = el('div', 'history-entry-header');
+    const daySpan = el('span', 'history-day', {}, `Tag ${log.day}`);
+    daySpan.style.color = log.color;
+    entryHeader.appendChild(daySpan);
+    entryHeader.appendChild(el('span', 'history-date', {}, log.date));
+    entry.appendChild(entryHeader);
+
+    log.exercises.forEach(ex => {
+      const filled = (ex.sets || []).filter(s => s.reps || s.weight);
+      if (!filled.length) return;
+      entry.appendChild(el('div', 'history-ex-name', {}, ex.name));
+      const chips = el('div', 'history-sets');
+      ex.sets.forEach(s => {
+        if (!s.reps && !s.weight) return;
+        const chip = el('span', 'history-set-chip', {}, `${s.weight ? s.weight + 'kg' : 'BW'}×${s.reps || '?'}${s.rir !== '' && s.rir !== undefined ? ' R' + s.rir : ''}`);
+        chips.appendChild(chip);
+      });
+      entry.appendChild(chips);
+    });
+
+    const delBtn = el('button', 'history-delete-btn', {}, '🗑 Session löschen');
+    delBtn.addEventListener('click', () => {
+      if (confirm('Session löschen?')) {
+        state.savedLogs.splice(idx, 1);
+        persist();
+        render();
+      }
+    });
+    entry.appendChild(delBtn);
+    panel.appendChild(entry);
+  });
+
+  return panel;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  const day = state.plan[state.activeDay];
+
+  // Header
+  const header = el('div', 'header');
+  const headerTop = el('div', 'header-top');
+
+  const titleBlock = el('div');
+  titleBlock.appendChild(el('div', 'header-label', {}, 'Training Log'));
+  const title = el('div', 'header-title');
+  title.appendChild(document.createTextNode(`Tag ${state.activeDay} `));
+  const titleSpan = el('span', null, {}, `— ${day.label.split('—')[1]?.trim()}`);
+  titleSpan.style.color = day.color;
+  title.appendChild(titleSpan);
+  titleBlock.appendChild(title);
+
+  const headerRight = el('div', 'header-right');
+  const dateInput = el('input', 'date-input', { type: 'date' });
+  dateInput.value = state.date;
+  dateInput.addEventListener('change', () => { state.date = dateInput.value; });
+
+  const histBtn = el('button', state.showHistory ? 'history-btn active' : 'history-btn');
+  histBtn.textContent = state.savedLogs.length > 0 ? `📋 ${state.savedLogs.length}` : '📋';
+  histBtn.addEventListener('click', () => { state.showHistory = !state.showHistory; render(); });
+
+  headerRight.appendChild(dateInput);
+  headerRight.appendChild(histBtn);
+  headerTop.appendChild(titleBlock);
+  headerTop.appendChild(headerRight);
+  header.appendChild(headerTop);
+
+  // Day tabs
+  const tabs = el('div', 'day-tabs');
+  ['A', 'B'].forEach(d => {
+    const tab = el('button', `day-tab${state.activeDay === d ? (d === 'A' ? ' active-a' : ' active-b') : ''}`);
+    const sub = el('div', 'day-tab-sub', {}, `${state.plan[d].exercises.length} Übungen`);
+    tab.appendChild(document.createTextNode(`Tag ${d}`));
+    tab.appendChild(sub);
+    tab.addEventListener('click', () => { state.activeDay = d; render(); });
+    tabs.appendChild(tab);
+  });
+  header.appendChild(tabs);
+  app.appendChild(header);
+
+  // Main
+  const main = el('div', 'main');
+
+  // Install Banner
+  if (state.showInstallBanner && state.installEvent) {
+    const banner = el('div', 'install-banner');
+    const bannerText = el('div');
+    bannerText.appendChild(el('div', 'install-text', {}, '📲 App installieren'));
+    bannerText.appendChild(el('div', 'install-sub', {}, 'Zum Homescreen hinzufügen'));
+    const installBtn = el('button', 'install-btn', {}, 'Installieren');
+    installBtn.addEventListener('click', async () => {
+      state.installEvent.prompt();
+      const { outcome } = await state.installEvent.userChoice;
+      state.showInstallBanner = false;
+      state.installEvent = null;
+      render();
+    });
+    const dismissBtn = el('button', 'install-dismiss', {}, '×');
+    dismissBtn.addEventListener('click', () => { state.showInstallBanner = false; render(); });
+    banner.appendChild(bannerText);
+    banner.appendChild(installBtn);
+    banner.appendChild(dismissBtn);
+    main.appendChild(banner);
+  }
+
+  // History
+  if (state.showHistory) main.appendChild(renderHistoryPanel());
+
+  // Exercise Cards
+  day.exercises.forEach(ex => main.appendChild(renderExerciseCard(ex, day.color)));
+
+  // Add Exercise Button
+  const addExBtn = el('button', 'add-ex-btn');
+  addExBtn.style.border = `1px dashed ${day.color}40`;
+  addExBtn.style.color = day.color + '99';
+  addExBtn.textContent = '+ Übung hinzufügen';
+  addExBtn.addEventListener('mouseenter', () => { addExBtn.style.background = `${day.color}0d`; addExBtn.style.color = day.color; });
+  addExBtn.addEventListener('mouseleave', () => { addExBtn.style.background = 'transparent'; addExBtn.style.color = day.color + '99'; });
+  addExBtn.addEventListener('click', () => { state.showModal = true; render(); });
+  main.appendChild(addExBtn);
+
+  // Save Button
+  const saveBtn = el('button', state.saveFlash ? 'save-btn flash' : 'save-btn');
+  if (!state.saveFlash) {
+    saveBtn.style.background = `linear-gradient(135deg, ${day.color}dd, ${day.color}99)`;
+    saveBtn.style.color = '#0a0a0f';
+  }
+  saveBtn.textContent = state.saveFlash ? '✓ Session gespeichert!' : `Tag ${state.activeDay} speichern`;
+  saveBtn.addEventListener('click', () => {
+    const entry = {
+      date: state.date,
+      day: state.activeDay,
+      label: day.label,
+      color: day.color,
+      exercises: day.exercises.map(ex => ({
+        name: ex.name,
+        sets: [...(state.logs[state.activeDay][ex.id]?.sets || [])],
+        notes: state.logs[state.activeDay][ex.id]?.notes || '',
+      }))
+    };
+    state.savedLogs.unshift(entry);
+    state.saveFlash = true;
+    persist();
+    render();
+    setTimeout(() => { state.saveFlash = false; render(); }, 2200);
+  });
+  main.appendChild(saveBtn);
+  main.appendChild(el('div', 'storage-hint', {}, 'Daten werden lokal gespeichert & bleiben beim nächsten Öffnen erhalten'));
+
+  app.appendChild(main);
+
+  // Modal
+  const modal = renderModal();
+  if (modal) app.appendChild(modal);
+}
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+render();
+</script>
+</body>
+</html>
